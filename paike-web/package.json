@@ -1,0 +1,40 @@
+{
+  "name": "paike-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit --skipLibCheck && vite build",
+    "preview": "vite preview",
+    "postinstall": "npx rimraf ./node_modules/@types/preact & npx rimraf ./node_modules/preact/src/index.d.ts & npx rimraf ./node_modules/preact/src/jsx.d.ts"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "@fullcalendar/core": "^6.1.15",
+    "@fullcalendar/daygrid": "^6.1.15",
+    "@fullcalendar/interaction": "^6.1.15",
+    "@fullcalendar/timegrid": "^6.1.15",
+    "@fullcalendar/vue3": "^6.1.15",
+    "ant-design-vue": "^3.2.12",
+    "axios": "^0.27.2",
+    "highlight.js": "^11.11.1",
+    "interactjs": "^1.10.27",
+    "pinia": "^2.2.4",
+    "vue": "^3.4.37",
+    "vue-router": "^4.4.5",
+    "vuedraggable": "^4.1.0",
+    "xlsx": "^0.18.5",
+    "xlsx-style": "^0.8.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "sass": "1.78",
+    "sass-embedded": "^1.79.4",
+    "sass-loader": "^16.0.2",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.1",
+    "vue-tsc": "^2.0.29"
+  }
+}

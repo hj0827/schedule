@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 小助手 - 智能体列表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #result {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .bot-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+
+        .bot-item:last-child {
+            border-bottom: none;
+        }
+
+        h3 {
+            margin: 0 0 5px 0;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="result"></div>
+    <script>
+        const apiUrl = 'https://api.coze.cn/v1/space/published_bots_list';
+        const token = 'pat_Z0eAj1zDVKE47anlK2PYeATsR9Uh8cTnaTHTLn3HkXaaEYQyAKLGlosTLXWr2T56';
+        const spaceId = '7460146967008952346';
+
+        async function fetchData() {
+            try {
+                const fullUrl = `${apiUrl}?space_id=${spaceId}`;
+                const response = await fetch(fullUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const resultDiv = document.getElementById('result');
+
+                if (data.data && data.data.space_bots) {
+                    data.data.space_bots.forEach(bot => {
+                        const botDiv = document.createElement('div');
+                        botDiv.classList.add('bot-item');
+
+                        const botName = document.createElement('h3');
+                        botName.textContent = bot.bot_name;
+                        botDiv.appendChild(botName);
+
+                        const botDescription = document.createElement('p');
+                        botDescription.textContent = bot.description;
+                        botDiv.appendChild(botDescription);
+
+                        const botIcon = document.createElement('img');
+                        botIcon.src = bot.icon_url;
+                        botIcon.alt = bot.bot_name;
+                        botDiv.appendChild(botIcon);
+
+                        resultDiv.appendChild(botDiv);
+                    });
+                } else {
+                    resultDiv.textContent = '未找到相关智能体信息。';
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                const resultDiv = document.getElementById('result');
+                resultDiv.textContent = '请求数据时出现错误，请检查网络或 API 地址。';
+            }
+        }
+
+        fetchData();
+    </script>
+</body>
+
+</html>

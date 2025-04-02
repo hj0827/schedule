@@ -1,0 +1,15 @@
+spring:
+  profiles:
+    active: test
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    database: 0
+    timeout: 2000
+    jedis:
+      pool:
+        max-active: 100
+        max-idle: 10
+        min-idle: 1
+        max-wait: -1ms

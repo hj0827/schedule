@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 异步小助手</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #response {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>AI 异步小助手</h1>
+    <textarea id="input" placeholder="请输入你的问题"></textarea>
+    <button onclick="sendAsyncRequest()">发送异步请求</button>
+    <div id="response"></div>
+
+    <script>
+        async function sendAsyncRequest() {
+            const input = document.getElementById('input').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = '请求已发送，正在处理中...';
+
+            const apiKey = '65156760c45841b08ddd2a190707e3f4.3BGcKZHzBgfl2vpY';
+            const asyncApiUrl = 'https://open.bigmodel.cn/api/paas/v4/async/chat/completions';
+            const resultApiUrl = 'https://open.bigmodel.cn/api/paas/v4/async-result/';
+
+            const messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": input
+                        }
+                    ]
+                }
+            ];
+
+            const requestOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'glm-4-plus',
+                    messages: messages
+                })
+            };
+
+            try {
+                // 发送异步请求
+                const asyncResponse = await fetch(asyncApiUrl, requestOptions);
+                const asyncData = await asyncResponse.json();
+                const taskId = asyncData.id;
+
+                // 轮询任务结果
+                let taskStatus = '';
+                let getCnt = 0;
+                while (taskStatus!== 'SUCCESS' && taskStatus!== 'FAIL' && getCnt <= 40) {
+                    const resultResponse = await fetch(`${resultApiUrl}${taskId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`
+                        }
+                    });
+                    const resultData = await resultResponse.json();
+                    taskStatus = resultData.task_status;
+                    if (taskStatus === 'SUCCESS') {
+                        const content = resultData.choices[0].message.content;
+                        responseDiv.innerHTML = content;
+                    } else if (taskStatus === 'FAIL') {
+                        responseDiv.innerHTML = '任务处理失败';
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        getCnt++;
+                    }
+                }
+            } catch (error) {
+                responseDiv.innerHTML = `请求出错: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+
+</html>
