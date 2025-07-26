@@ -6,6 +6,7 @@ import { resolve } from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  base: './',
   server: {
     host: '0.0.0.0',
     port: 8080,
@@ -13,18 +14,16 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:8089', // 目标后端 API 地址
+        // target: 'http://192.168.1.71:8089', // 目标后端 API 地址
         changeOrigin: true, // 支持虚拟托管
         rewrite: (path) => path.replace(/^\/api/, ''), // 重写路径
       },
     },
   },
   resolve: {
-    alias: [
-      {
-        find: '@',
-        replacement: resolve(__dirname, 'src'),
-      },
-    ],
+    alias: {
+      '@': resolve(__dirname, 'src')
+    },
   },
   css: {
     preprocessorOptions: {

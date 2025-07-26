@@ -1,4 +1,4 @@
-<!-- <template>
+<template>
     <div class="testTotal">
         <div>{{ count }}</div>
         <a-button type="primary" @click="addBtn">新增</a-button>
@@ -53,6 +53,6 @@ const addBtn = ()=>{
         // 垂直排列
         flex-direction: column;
     }
-</style> -->
+</style>
 
 

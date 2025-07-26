@@ -1,15 +1,21 @@
 <template>
     <SysDialog :title="dialog.title" :width="dialog.width" :height="dialog.height" :visible="dialog.visible"
-        @onClose="onClose" @onConfirm="onConfirm" :destroyOnClose="true">
+        @onClose="onClose" @onConfirm="onConfirm" @onDelete="onDelete" :mode="editType" :destroyOnClose="true">
         <template #content>
-            编辑
-            <a-form style="margin-right: 30px;">
-                <a-row>
+            <a-form style="margin-right: 30px;">   
+             <a-row>
                     <a-col :span="24">
                         <a-form-item v-bind="validateInfos.courseId" :labelCol="{ style: 'width:80px;' }" label="课程">
                             <a-select v-model:value="addModel.courseId" show-search placeholder="请选择课程"
                                 style="width: 100%;" :options="courseOptions"
                                 :filter-option="filterCourseOption"></a-select>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                <a-row v-if="editType === 'edit'">
+                    <a-col :span="24">
+                        <a-form-item :labelCol="{ style: 'width:80px;' }" label="课时">
+                            <a-input v-model:value="addModel.lessonNumber" disabled></a-input>
                         </a-form-item>
                     </a-col>
                 </a-row>
@@ -34,7 +40,7 @@
                             </a-select>
                         </a-form-item>
                     </a-col>
-                    <a-col :span="12">
+                    <a-col :span="12" v-if="editType === 'edit'">
                         <a-form-item v-bind="validateInfos.course_type" :labelCol="{ style: 'width:80px;' }" label="考期">
                             <a-input v-model:value="addModel.courseType" disabled></a-input>
                         </a-form-item>
@@ -60,7 +66,6 @@
                 </a-row>
             </a-form>
         </template>
-
     </SysDialog>
 </template>
 
@@ -74,8 +79,9 @@ import { EditType, Title } from '@/type/BaseEnum';
 import useselect from '../../composable/schedule/useSelect';
 import dayjs, { Dayjs } from 'dayjs'
 import useInstance from '@/hooks/useInstance';
-import { addCalendarApi, updateCalendarApi } from '@/api/schedule/schedule'
+import { addCalendarApi, updateCalendarApi, deleteCalendarApi } from '@/api/schedule/schedule'
 import { useForm } from 'ant-design-vue/lib/form';
+import { Modal, message } from 'ant-design-vue';
 const { global } = useInstance()
 // 弹窗属性
 const { dialog, onClose, onShow } = useDialog()
@@ -86,11 +92,9 @@ const { rolePage, tableList, columns, tableHeight, listParm, getList } = useTabl
 const { roomOptions, teacherOptions, courseOptions, filterCourseOption, filterRoomOption, filterTeacheroption } = useselect(getList,listParm)
 
 // 设置编辑或新增
-const editType = ref('')
+const editType = ref<string>('add')
 // 定义方法给外部组件使用
 const editCalender = (type: string, data: EditModel) => {
-    // console.log(type)
-    // console.log(data)
     // 清空表单
     resetFields()
     dataTime.value = undefined;
@@ -99,17 +103,33 @@ const editCalender = (type: string, data: EditModel) => {
 
     dialog.width = 700
     dialog.height = 350
-    if (type == EditType.ADD) {
+    if (type === EditType.ADD) {
         dialog.title = Title.ADD
+        editType.value = 'add'
+        // 设置新增时的默认值
+        addModel.duration = 60 // 默认时长60分钟
+        if (data?.dateTime) {
+            dataTime.value = dayjs(data.dateTime)
+            addModel.dateTime = data.dateTime
+        }
+        if (data?.beginTime) {
+            beginTime1.value = dayjs(data.beginTime, 'HH:mm')
+            addModel.beginTime = data.beginTime
+            // 如果有开始时间，自动计算结束时间
+            if (beginTime1.value) {
+                endTime1.value = dayjs(beginTime1.value).add(60, 'minute')
+                addModel.endTime = endTime1.value.format('HH:mm')
+            }
+        }
     } else {
         dialog.title = Title.EDIT
+        editType.value = 'edit'
         // 编辑数据回显
         global.$objCoppy(data, addModel)
         dataTime.value = dayjs(data?.dateTime, 'YYYY-MM-DD')
         beginTime1.value = dayjs(data?.beginTime, 'HH:mm')
         endTime1.value = dayjs(data?.endTime, 'HH:mm')
     }
-    editType.value = type
     onShow()
 }
 
@@ -124,6 +144,7 @@ const addModel = reactive({
     endTime: '',
     duration: 0,
     courseType: "",
+    lessonNumber: "",
 })
 
 
@@ -262,22 +283,77 @@ const endTimeChange = () => {
     }
 };
 
+// 定义API响应类型
+interface ApiResponse {
+    code: number;
+    msg?: string;
+    data?: any;
+}
+
 // 弹窗确认
 const onConfirm = () => {
     validate().then(async () => {
-        let res = null as any;
-        if (editType.value == EditType.ADD) {
-            res = await addCalendarApi(addModel as any)
-        } else {
-            // res = await updateCalendarApi(addModel)
-            res = await updateCalendarApi(addModel as any)
-        }
-        if (res && res.code == 200) {
-            // 刷新表格数据
-            emit('upSuccess')
-            onClose()
+        try {
+            let res: ApiResponse | null = null;
+            if (editType.value === 'add') {
+                // 新增模式：直接调用新增API
+                res = await addCalendarApi(addModel as any) as ApiResponse;
+                if (res && res.code == 200) {
+                    message.success('新增成功');
+                    emit('upSuccess');
+                    onClose();
+                } else {
+                    message.error(res?.msg || '新增失败');
+                }
+            } else {
+                // 编辑模式：显示确认对话框
+                Modal.confirm({
+                    title: '确认修改',
+                    content: '确定要修改这条课程排程吗？',
+                    okText: '是',
+                    cancelText: '否',
+                    async onOk() {
+                        res = await updateCalendarApi(addModel as any) as ApiResponse;
+                        if (res && res.code == 200) {
+                            message.success('修改成功');
+                            emit('upSuccess');
+                            onClose();
+                        } else {
+                            message.error(res?.msg || '修改失败');
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('操作失败', error);
+            message.error('请求出错，请重试');
         }
     })
 }
 
+// 删除事件
+const onDelete = () => {
+    Modal.confirm({
+        title: '确认删除',
+        content: '确定要删除这条课程排程吗？',
+        okText: '是',
+        okType: 'danger',
+        cancelText: '否',
+        async onOk() {
+            try {
+                const res = await deleteCalendarApi(String(addModel.id)) as ApiResponse;
+                if (res && res.code === 200) {
+                    message.success('删除成功');
+                    emit('upSuccess');
+                    onClose();
+                } else {
+                    message.error(res.msg || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除课程排程失败', error);
+                message.error('请求出错，请重试');
+            }
+        }
+    });
+};
 </script>

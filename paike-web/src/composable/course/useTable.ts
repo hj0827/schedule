@@ -17,6 +17,8 @@ export default function useTable() {
     const tableList = reactive({
         list: [] as any[]
     });
+    // 控制展开行的状态
+    const expandedRowKeys = ref<string[]>([]);
     // 表格的列
     const columns = [
         {
@@ -39,6 +41,12 @@ export default function useTable() {
             dataIndex: 'courseYear',
             key: 'courseYear',
             width: 65
+        },
+        {
+            title: '远智课程ID',
+            dataIndex: 'yuanzhiCourseId',
+            key: 'yuanzhiCourseId',
+            width: 120
         },
         {
             title: '合并上课',
@@ -66,7 +74,7 @@ export default function useTable() {
         pageSize: 10,
         total: 0,
         showSizeChanger: true,
-        pageSizeOptions: ['10', '20', '30', '40', '50'],
+        pageSizeOptions: ['10', '20', '30', '40', '50', '500'],
         showTotal: (total: number) => `共有${total}条数据`,
         onChange: (current: number, size: number) => {
             listParm.currentPage = current;
@@ -90,22 +98,36 @@ export default function useTable() {
         let res = await getListApi(listParm) as ApiResponse;
         if (res && res.code === 200) {
             console.log(res);
+            
+            // 获取原始记录总数（不包括子记录）
+            const originalTotal = res.data.total;
+            
             // 将查询到的数据赋值给表格数据
-            tableList.list = transformToTree(res.data.records);
-            // 分页总条数
-            rolePage.total = res.data.total;
+            const treeData = transformToTree(res.data.records);
+            tableList.list = treeData;
+            
+            // 设置要展开的行
+            expandedRowKeys.value = res.data.records
+                .filter((item: any) => item.parentCourseId === null || item.parentCourseId === '')
+                .map((item: any) => item.courseId);
+                
+            // 使用原始总数而不是转换后的树形结构长度
+            rolePage.total = originalTotal;
         }
     };
 
     // 转换为树形结构
     const transformToTree = (data: any[]): any[] => {
+        // 先创建一个Map来存储所有节点
         const map = new Map();
         const roots: any[] = [];
 
+        // 第一遍循环，将所有节点添加到Map中
         data.forEach(item => {
             map.set(item.courseId, { ...item, children: [] });
         });
 
+        // 第二遍循环，构建树形结构
         data.forEach(item => {
             if (item.parentCourseId) {
                 const parent = map.get(item.parentCourseId);
@@ -135,6 +157,18 @@ export default function useTable() {
         return cleanTree(roots);
     };
 
+    // 处理展开/收起
+    const onExpand = (expanded: boolean, record: any) => {
+        if (expanded) {
+            expandedRowKeys.value.push(record.courseId);
+        } else {
+            const index = expandedRowKeys.value.indexOf(record.courseId);
+            if (index > -1) {
+                expandedRowKeys.value.splice(index, 1);
+            }
+        }
+    };
+
     onMounted(() => {
         // 表格数据查询
         getList();
@@ -150,6 +184,8 @@ export default function useTable() {
         rolePage,
         listParm,
         columns,
-        getList
+        getList,
+        expandedRowKeys,
+        onExpand
     };
 }

@@ -18,4 +18,5 @@ export interface CourseModel {
     courseColor: string;
     type: string;
     isMergeClasses: string;
+    yuanzhiCourseId?: string;
 }

@@ -4,7 +4,7 @@
             <div class="text-ellipsis">
                 <b>{{ arg.event.extendedProps.dateTime }} {{ arg.timeText }}</b>
                 <br />
-                <b>《{{ arg.event.extendedProps.courseName }}》 课时{{ arg.event.extendedProps.lessonNumber }}</b>
+                <b>《{{ arg.event.extendedProps.courseName }}》 {{ formatLessonName(arg.event.extendedProps.lessonName) }}</b>
                 <br />
                 <b>{{ arg.event.extendedProps.courseType }}</b>
                 <br />
@@ -19,7 +19,7 @@
 <script lang="ts" setup>
 import CalendarEdit from './CalendarEdit.vue'
 import { onMounted, reactive, ref } from 'vue'
-import { getScheduleListApi, updateCalendarApi } from '@/api/schedule/schedule'
+import { getScheduleListForCalendarApi, updateCalendarApi } from '@/api/schedule/schedule'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -69,8 +69,13 @@ const tbisMonthCustomClick = () => {
 // 日历新增点击事件
 const addClick = (selectInfo: DateClickArg) => {
     console.log(selectInfo)
-    editRef.value.editCalender(EditType.ADD)
-
+    const clickedDate = dayjs(selectInfo.date)
+    const clickData = {
+        dateTime: clickedDate.format('YYYY-MM-DD'),
+        beginTime: clickedDate.format('HH:mm'),
+        duration: 60 // 默认时长60分钟
+    }
+    editRef.value.editCalender(EditType.ADD, clickData)
 }
 // 日历点击编辑事件
 const editClick = (clickInfo: EventClickArg) => {
@@ -283,22 +288,30 @@ const calendarParams = reactive({
     roomId: '',
     courseId: '',
     teacherId: ''
+    // 不设置分页参数，使用非分页查询获取全部数据
 });
 
 // 获取日历数据
 const getScheduleList = async (params: any = {}) => {
-    console.log("ddddddddddddddd" + JSON.stringify(params));
-    let res = await getScheduleListApi(params) as any;
-    console.log("日历数据1111111" + JSON.stringify(res));
-    if (res && res.code == 200 && res.data.length > 0) {
+    // 合并默认参数和传入参数
+    const finalParams = { ...calendarParams, ...params };
+    console.log("发送请求参数:", JSON.stringify(finalParams, null, 2));
+    let res = await getScheduleListForCalendarApi(finalParams) as any;
+    console.log("接收到响应:", JSON.stringify(res, null, 2));
+    if (res && res.code == 200) {
+        // 日历专用API直接返回数组
+        const dataList = res.data || [];
+        console.log('实际数据列表:', dataList, '数据条数:', dataList.length);
+
+        if (dataList && dataList.length > 0) {
         // 清空数据
         calendarOptions.events = [];
         // 用于存储分组后的数据
         const groupedData: { [key: string]: any[] } = {};
 
         // 循环数据
-        for (let i = 0; i < res.data.length; i++) {
-            if (res.data[i]) {
+        for (let i = 0; i < dataList.length; i++) {
+            if (dataList[i]) {
                 let obj = {
                     id: '',
                     title: '',
@@ -311,21 +324,21 @@ const getScheduleList = async (params: any = {}) => {
                 };
 
                 // 获取 courseColor 的信息
-                let color = res.data[i].courseColor;
-                let classes = res.data[i].courseColor;
+                let color = dataList[i].courseColor;
+                let classes = dataList[i].courseColor;
                 obj.backgroundColor = color;
                 obj.className = classes;
 
                 // 设置 obj 的其他属性
-                obj.id = res.data[i].id;
-                obj.title = `${res.data[i].courseName} ${res.data[i].teacherName} ${res.data[i].roomName} ${res.data[i].roomAddress}`;
-                obj.start = `${res.data[i].dateTime} ${res.data[i].beginTime}`;
-                obj.end = `${res.data[i].dateTime} ${res.data[i].endTime}`;
-                obj.extendedProps = res.data[i];
-                obj.courseType = res.data[i].courseType;
+                obj.id = dataList[i].id;
+                obj.title = `${dataList[i].courseName} ${dataList[i].teacherName} ${dataList[i].roomName} ${dataList[i].roomAddress}`;
+                obj.start = `${dataList[i].dateTime} ${dataList[i].beginTime}`;
+                obj.end = `${dataList[i].dateTime} ${dataList[i].endTime}`;
+                obj.extendedProps = dataList[i];
+                obj.courseType = dataList[i].courseType;
 
                 // 分组
-                const key = `${res.data[i].courseType}-${res.data[i].courseName}`;
+                const key = `${dataList[i].courseType}-${dataList[i].courseName}`;
                 if (!groupedData[key]) {
                     groupedData[key] = [];
                 }
@@ -347,10 +360,30 @@ const getScheduleList = async (params: any = {}) => {
                 }
             });
         }
+        } else {
+            console.log('没有数据，清空事件数组');
+            // 没有数据时也要清空事件数组，但不显示警告
+        }
     } else {
-        message.warning('暂无数据');
+        console.error('API响应错误:', res);
         calendarOptions.events = [];
     }
+};
+
+// Method to format lesson name for display
+const formatLessonName = (lessonName: string) => {
+    if (!lessonName) return '';
+    // Assuming the format is CourseNameStageIndex
+    // Extracting the part after the course name which should be StageIndex
+    const stageNames = ['精讲', '密训', '真题', '考点', '其他'];
+    for (const stage of stageNames) {
+        const index = lessonName.indexOf(stage);
+        if (index !== -1) {
+            return lessonName.substring(index);
+        }
+    }
+    // Fallback if no known stage name is found
+    return lessonName;
 };
 
 // 新增、编辑成功后刷新数据

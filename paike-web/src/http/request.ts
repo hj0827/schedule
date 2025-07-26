@@ -55,27 +55,28 @@ class request {
                     });
                 } else {
                     message.error(res.data.msg || '服务器出错')
-                    // 遍历出来
-                    let datas: string[] = []
-                    res.data.data.forEach((item: any) => {
-                        console.log(item.name); // 控制台输出时换行
-                        datas.push(item.name + "\n");
-                    });
-                    console.log(datas)
-                    if (datas.length > 0) {
-                        // message.error(datas)
-                        Modal.warning({
-                            title: '系统提示，用户名已存在',
-                            content: h('div', { class: 'scheduleClass' }, [
-                                datas.map(username => h('p', username))
-                            ]),
-                            okText: '确定',
-                            onOk: () => {
-                                console.log('ok');
-                            },
+                    // 检查 res.data.data 是否存在且为数组
+                    if (res.data.data && Array.isArray(res.data.data)) {
+                        // 遍历出来
+                        let datas: string[] = []
+                        res.data.data.forEach((item: any) => {
+                            console.log(item.name); // 控制台输出时换行
+                            datas.push(item.name + "\n");
                         });
-                    } else {
-                        message.error(res.data.msg || '服务器出错')
+                        console.log(datas)
+                        if (datas.length > 0) {
+                            // message.error(datas)
+                            Modal.warning({
+                                title: '系统提示，用户名已存在',
+                                content: h('div', { class: 'scheduleClass' }, [
+                                    datas.map(username => h('p', username))
+                                ]),
+                                okText: '确定',
+                                onOk: () => {
+                                    console.log('ok');
+                                },
+                            });
+                        }
                     }
             
                     return Promise.reject(res.data.msg || '服务器出错')

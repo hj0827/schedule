@@ -1,0 +1,677 @@
+<template>
+    <sys-dialog :title="dialog.title" :height="dialog.height" :width="dialog.width" :visible="dialog.visible"
+        @onClose="onClose" @onConfirm="onConfirm" :destroyOnClose="true">
+        <template #content>
+            <!-- 加载动画 -->
+            <loading-overlay :visible="loading" />
+            <a-form>
+                <div class="form-item-margin">
+                    <div class="left-part">
+                        <a-row>
+                            <a-col :span="24">
+                                <a-form-item v-bind="validateInfos.courseId" label="课程">
+                                    <a-select v-model:value="addParm.courseId" show-search placeholder="请选择课程"
+                                        style="width: 100%;" :options="courseOptionsPaike"
+                                        :filter-option="filterCourseOption" allowClear @change="handleCourseChange">
+                                        <template #option="{ value: courseId, courseType, label, isMergeClasses }">
+                                            <div @mouseenter="onCourseMouseEnter(courseId)" class="course-option">
+                                                <a-tag v-if="isMergeClasses == 1" color="red">合并</a-tag>
+                                                <span>{{ label }}</span>
+                                                <a-tooltip v-if="isMergeClasses == 1" placement="right">
+                                                    <template #title>
+                                                        <div><strong>合并课程考期：</strong></div>
+                                                        <div v-for="(item, index) in hoveredCourseTerms" :key="index" class="term-list-item">
+                                                            {{ item.courseType }}
+                                                        </div>
+                                                        <div v-if="!hoveredCourseTerms || hoveredCourseTerms.length === 0">正在加载考期信息...</div>
+                                                    </template>
+                                                    <info-circle-outlined style="margin-left: 5px; color: #1890ff;" />
+                                                </a-tooltip>
+                                            </div>
+                                        </template>
+                                    </a-select>
+                                </a-form-item>
+                            </a-col>
+                        </a-row>
+                        <a-row>
+                            <a-col :span="12">
+                                <a-form-item v-bind="validateInfos.roomId" :labelCol="{ style: 'width:80px;' }"
+                                    label="教室">
+                                    <a-select v-model:value="addParm.roomId" show-search placeholder="请选择教室"
+                                        style="width: 200px;" :options="roomOptions" allowClear
+                                        :filter-option="filterRoomOption" @change="handleClassRoomChange">
+                                    </a-select>
+                                </a-form-item>
+                            </a-col>
+                            <a-col :span="12">
+                                <a-form-item v-bind="validateInfos.teacherId" :labelCol="{ style: 'width:80px;' }"
+                                    label="教师">
+                                    <a-select v-model:value="addParm.teacherId" show-search placeholder="请选择教师"
+                                        style="width: 200px;" :options="teacherOptions" allowClear
+                                        :filter-option="filterTeacheroption" @change="handleTeaChange">
+                                    </a-select>
+                                </a-form-item>
+                            </a-col>
+                        </a-row>
+                        <a-form-item v-bind="validateInfos.weeks" :labelCol="{ style: 'width:80px;' }" label="星期">
+                            <a-checkbox-group :options="weekOptions" v-model:value="addParm.weeks"></a-checkbox-group>
+                        </a-form-item>
+                        <a-form-item label="时间段组" :labelCol="{ style: 'width:80px;' }">
+                            <a-radio-group v-model:value="selectedTimeGroup" @change="handleTimeGroupChange">
+                                <a-radio :value="1">全天班</a-radio>
+                                <a-radio :value="2">周一至周五晚班</a-radio>
+                                <a-radio :value="3">周末班</a-radio>
+                            </a-radio-group>
+                        </a-form-item>
+                        <!-- Add optional stage name field -->
+                        <a-row>
+                            <a-col :span="24">
+                                <a-form-item label="阶段名称" :labelCol="{ style: 'width:80px;' }">
+                                    <a-select v-model:value="addParm.stageId" placeholder="请选择阶段 (可选)"
+                                        style="width: 200px;" allowClear>
+                                        <!-- Dynamically generated options from backend data -->
+                                        <a-select-option v-for="stage in stageOptions" :key="stage.id" :value="stage.id">
+                                            {{ stage.stageName }}
+                                        </a-select-option>
+                                    </a-select>
+                                </a-form-item>
+                            </a-col>
+                        </a-row>
+                        <a-form-item v-bind="validateInfos.startDate" :labelCol="{ style: 'width:80px;' }" label="上课日期">
+                            <a-range-picker v-model:value="selectTime" format="YYYY-MM-DD"
+                                :placeholder="['开始时间', '结束时间']" @change="openChange"></a-range-picker>
+                        </a-form-item>
+                        <a-row>
+                            <a-col>
+                                <a-form-item v-bind="validateInfos.beginTime" label="上课时间">
+                                    <a-time-picker :minuteStep="5" @change="beginTimeChange" v-model:value="beginTime1"
+                                        format="HH:mm"></a-time-picker>
+                                </a-form-item>
+                            </a-col>
+                            <a-col style="margin-left: 5px;">
+                                <a-form-item label="课程时长">
+                                    <a-input-number v-model:value="inputNumber" @change="getEndTime"></a-input-number>
+                                </a-form-item>
+                            </a-col>
+                            <a-col style="margin-left: 5px;">
+                                <a-form-item label="下课时间">
+                                    <a-time-picker v-model:value="endTime1" format="HH:mm"
+                                        @change="endTimeChange"></a-time-picker>
+                                </a-form-item>
+                            </a-col>
+                            <a-col style="margin-left: 5px;">
+                                <a-button type="primary" @click="addSchedule">添加时间段</a-button>
+                            </a-col>
+                        </a-row>
+                        <!-- <a-row>
+                            <a-col :span="24">
+                                <a-button type="primary" @click="addSchedule">添加时间段</a-button>
+                            </a-col>
+                        </a-row> -->
+                        <a-row>
+                            <a-col :span="24">
+                                <div v-for="(schedule, index) in addParm.schedules" :key="index" class="schedule-tag">
+                                    {{ schedule.beginTime }} ~ {{ schedule.endTime }}
+                                    <span class="delete-btn" @click="removeSchedule(index)">x</span>
+                                </div>
+                            </a-col>
+                        </a-row>
+
+                    </div>
+                    <div class="schedule-list">
+                                                    <div class="fixed-header">
+                                <h3>推荐课时</h3>
+                                <div class="schedule-tip">
+                                    <a-tooltip placement="right">
+                                        <template #title>
+                                            <span>点击选择多个课时，然后点击确定按钮进行批量排课</span>
+                                        </template>
+                                        <info-circle-outlined style="color: #1890ff; margin-left: 5px;" />
+                                    </a-tooltip>
+                                </div>
+                                <a-input-search
+                                    v-model:value="searchValue"
+                                    placeholder="搜索课时"
+                                    style="margin-bottom: 10px; width: 100%;"
+                                    @search="onSearch"
+                                    allowClear
+                                />
+                                <div class="master-checkbox-row">
+                                    <a-checkbox 
+                                        v-model:checked="allSelected" 
+                                        @change="toggleAllSelection"
+                                        :indeterminate="isIndeterminate">
+                                        全选
+                                    </a-checkbox>
+                                    <div class="selection-count" :class="{ 'has-selected': selectedCount > 0 }">
+                                        已选择 {{ selectedCount }} 节课时
+                                    </div>
+                                </div>
+                            </div>
+                        <div class="scrollable-content">
+                            <a-form-item label="">
+                                <div v-for="(item, index) in filteredRecommendedSchedules" :key="index"
+                                    class="recommended-schedule-item">
+                                    <a-checkbox 
+                                        :value="item.schedule" 
+                                        v-model:checked="selectedSchedules[item.schedule]"
+                                        class="schedule-checkbox"
+                                        @click.stop />
+                                    <div class="schedule-content" 
+                                         @click="toggleScheduleItem(item.schedule)">
+                                        <div class="schedule-time">{{ item.schedule }}</div>
+                                        <div class="conflict-tags">
+                                            <a-tag v-if="item.conflicts.classroom" color="red">教室冲突</a-tag>
+                                            <a-tag v-if="item.conflicts.teacher" color="red">教师冲突</a-tag>
+                                            <a-tag v-if="item.conflicts.courseTerm" color="red" class="course-term-conflict">考期冲突</a-tag>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="filteredRecommendedSchedules.length === 0" class="no-data">
+                                    {{ searchValue ? '无匹配结果' : '暂无推荐课时' }}
+                                </div>
+                            </a-form-item>
+                        </div>
+                    </div>
+                    <div class="right-part">
+                        <!-- 展示课程排程数据 -->
+                        <div v-if="Object.keys(groupedCourseScheduleData).length > 0" class="schedule-container">
+                            <div class="schedule-header-fixed">
+                                <h3>该课程已排时间</h3>
+                                <div class="batch-actions-row">
+                                    <a-checkbox
+                                        v-model:checked="selectAll"
+                                        @change="handleSelectAll"
+                                        :indeterminate="indeterminate">
+                                        全选
+                                    </a-checkbox>
+                                    <a-button
+                                        type="primary"
+                                        danger
+                                        size="small"
+                                        :disabled="selectedScheduleIds.length === 0"
+                                        @click="confirmBatchDelete">
+                                        批量删除 ({{ selectedScheduleIds.length }})
+                                    </a-button>
+                                </div>
+                            </div>
+                            <div class="schedule-content-scrollable">
+                                <ul>
+                                    <li v-for="(schedules, stage) in groupedCourseScheduleData" :key="stage">
+                                        <h4>{{ stage }} ({{ schedules.length }})</h4>
+                                        <ul>
+                                            <li v-for="(schedule, index) in schedules" :key="schedule.delId" class="schedule-item">
+                                                <a-checkbox
+                                                    :checked="selectedScheduleIds.includes(String(schedule.delId))"
+                                                    @change="(e) => handleScheduleSelect(String(schedule.delId), e.target.checked)">
+                                                </a-checkbox>
+                                                <span class="schedule-content">
+                                                    {{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime }}【{{
+                                                    schedule.beginTime.substring(0, 5) }} ~
+                                                    {{ schedule.endTime.substring(0, 5) }}】
+                                                </span>
+                                                <span class="delete-btn" @click="confirmDelete(schedule.delId)">x</span>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <p>暂无课程排程信息</p>
+                        </div>
+                    </div>
+
+                    <!-- <div class="right-part">
+                        <div v-if="CourseTypeData.length > 0">
+                            <h3>考期</h3>
+                            <ul>
+                                <li v-for="(schedule, index) in CourseTypeData" :key="index">
+                                    {{ schedule.dateTime }}【{{
+                                        schedule.beginTime.substring(0, 5) }} ~
+                                    {{ schedule.endTime.substring(0, 5) }}】
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-else>
+                            <p>暂无考期信息</p>
+                        </div>
+                    </div> -->
+
+                    <!-- <div class="right-part">
+                        <div v-if="roomScheduleData.length > 0">
+                            <h3>教室已排时间</h3>
+                            <ul>
+                                <li v-for="(schedule, index) in roomScheduleData" :key="index">
+                                    {{ schedule.dateTime }}【{{
+                                        schedule.beginTime.substring(0, 5) }} ~
+                                    {{ schedule.endTime.substring(0, 5) }}】
+                                </li>
+                            </ul>
+                        </div>
+                        <div v-else>
+                            <p>暂无教室信息</p>
+                        </div>
+                    </div> -->
+
+                    <!-- <div class="right-part">
+                        <div v-if="Object.keys(groupedTermScheduleData).length > 0">
+                            <h3>考期已排时间</h3>
+                            <div v-for="(schedules, courseType) in groupedTermScheduleData" :key="courseType" class="term-group">
+                                <h4 class="term-type-title">{{ courseType }} ({{ schedules.length }})</h4>
+                                <ul>
+                                    <li v-for="(schedule, index) in schedules" :key="index">
+                                        {{ schedule.dateTime }}【{{
+                                            schedule.beginTime.substring(0, 5) }} ~
+                                        {{ schedule.endTime.substring(0, 5) }}】
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <p>暂无考期排程信息</p>
+                        </div>
+                    </div> -->
+
+                    <div class="right-part">
+                        <div v-if="teacherScheduleData.length > 0" class="teacher-schedule-container">
+                            <div class="teacher-schedule-header-fixed">
+                                <h3>教师已排时间</h3>
+                            </div>
+                            <div class="teacher-schedule-content-scrollable">
+                                <ul>
+                                    <li v-for="(schedule, index) in teacherScheduleData" :key="index" class="teacher-schedule-item">
+                                        {{ schedule.dateTime }}【{{
+                                            schedule.beginTime.substring(0, 5) }} ~
+                                        {{ schedule.endTime.substring(0, 5) }}】
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div v-else>
+                            <p>暂无教师信息</p>
+                        </div>
+                    </div>
+
+                </div>
+            </a-form>
+        </template>
+    </sys-dialog>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive, ref, computed, watch, nextTick } from 'vue';
+import loadingOverlay from '@/components/loadingOverlay.vue';
+import SysDialog from '../../components/SysDialog.vue';
+import useDialog from '../../hooks/useDialog';
+import useselect from '../../composable/schedule/useSelect';
+import dayjs, { Dayjs } from 'dayjs';
+import { saveScheduleApi, getScheduleListApi, deleteCalendarListApi, batchDeleteCalendarListApi, getClassRoomListApi, getTeaListApi, getCourseTypeListApi, getMergedCourseTermsApi, getAllTermSchedulesApi, getStageListApi, deleteCalendarApi, batchSaveScheduleApi } from '../../api/schedule/schedule';
+import { message } from 'ant-design-vue';
+import { useForm } from 'ant-design-vue/lib/form';
+import useTable from '@/composable/schedule/useTable';
+import { Modal } from 'ant-design-vue';
+import { type Stage } from '@/api/course/Stage';
+import { InfoCircleOutlined } from '@ant-design/icons-vue';
+
+const { rolePage, tableList, columns, tableHeight, listParm, getList } = useTable();
+// 下拉属性
+const { roomOptions, teacherOptions, courseOptions, courseOptionsPaike, filterCourseOption, filterRoomOption, filterTeacheroption } = useselect(getList, listParm);
+// 获取弹窗属性
+const { dialog, onShow, onClose } = useDialog();
+
+// 添加时间段组选择
+const selectedTimeGroup = ref<1 | 2 | 3>(1);
+
+// 定义时间段组
+interface TimeSlot {
+    beginTime: string;
+    endTime: string;
+    duration: number;
+}
+
+const timeGroups: Record<1 | 2 | 3, TimeSlot[]> = {
+    1: [
+        { beginTime: '09:00', endTime: '10:00', duration: 60 },
+        { beginTime: '10:30', endTime: '11:30', duration: 60 },
+        { beginTime: '14:00', endTime: '15:00', duration: 60 },
+        { beginTime: '15:30', endTime: '16:30', duration: 60 },
+        { beginTime: '17:00', endTime: '18:00', duration: 60 },
+        { beginTime: '19:00', endTime: '20:00', duration: 60 },
+        { beginTime: '20:30', endTime: '21:30', duration: 60 }
+    ],
+    2: [
+        { beginTime: '13:00', endTime: '14:00', duration: 60 },
+        { beginTime: '19:00', endTime: '20:00', duration: 60 },
+        { beginTime: '20:30', endTime: '21:30', duration: 60 }
+    ],
+    3: [
+        { beginTime: '09:00', endTime: '10:00', duration: 60 },
+        { beginTime: '10:30', endTime: '11:30', duration: 60 },
+        { beginTime: '14:00', endTime: '15:00', duration: 60 },
+        { beginTime: '15:30', endTime: '16:30', duration: 60 },
+        { beginTime: '17:00', endTime: '18:00', duration: 60 }
+    ]
+};
+
+// 处理时间段组变化
+const handleTimeGroupChange = () => {
+    // 清空现有的时间段
+    addParm.schedules = [];
+    // 添加新的时间段
+    const selectedGroup = timeGroups[selectedTimeGroup.value];
+    if (selectedGroup) {
+        addParm.schedules = [...selectedGroup];
+    }
+    // 根据时间段组自动设置星期
+    if (selectedTimeGroup.value === 1) {
+        // 全天班，设置周一至周日
+        addParm.weeks = [1, 2, 3, 4, 5, 6, 7];
+    } else if (selectedTimeGroup.value === 2) {
+        // 周一至周五晚班，设置周一至周五
+        addParm.weeks = [1, 2, 3, 4, 5];
+    } else if (selectedTimeGroup.value === 3) {
+        // 周末班，设置周六和周日
+        addParm.weeks = [6, 7];
+    }
+};
+
+// 修改 show 方法，设置默认时间段组为全天班
+const show = () => {
+    resetFields();
+    selectTime.value = undefined;
+    addParm.beginTime = dayjs(beginTime1.value, "HH:mm").format('HH:mm');
+    addParm.endTime = dayjs(endTime1.value, "HH:mm").format('HH:mm');
+    addParm.duration = inputNumber.value;
+    // 设置默认时间段（全天班）
+    addParm.schedules = [...timeGroups[1]];
+    // 设置默认星期（周一至周日）
+    addParm.weeks = [1, 2, 3, 4, 5, 6, 7];
+    // 重置阶段ID为null（保持可选状态）
+    addParm.stageId = null;
+    // 设置弹窗属性
+    dialog.title = '排课';
+    dialog.height = 500;
+    dialog.width = 1900;
+    // 显示弹窗
+    onShow();
+}
+
+defineExpose({
+    show
+});
+
+// 表单绑定的对象
+const addParm = reactive({
+    courseId: '',
+    teacherId: '',
+    roomId: '',
+    startDate: '', // 开课日期
+    endDate: '', // 结课日期
+    weeks: [1, 2, 3, 4, 5, 6, 7],
+    beginTime: '', // 上课时间
+    endTime: '', // 下课时间
+    duration: 0,
+    isMergeClasses: 0, // 是否合并课程
+    schedules: [] as { beginTime: string, endTime: string, duration: number }[], // 存储多个时间段
+    lessonName: '', // Add lessonName property
+    stageId: null as number | null // Add optional stageId property
+});
+
+// 表单验证
+const rules = reactive({
+    weeks: [{
+        required: true,
+        message: '请选择星期几',
+        trigger: 'change'
+    }],
+    startDate: [{
+        required: true,
+        message: '请选择日期',
+        trigger: 'change'
+    }],
+    roomId: [{
+        required: true,
+        message: '请选择教室',
+        trigger: 'change'
+    }],
+    teacherId: [{
+        required: true,
+        message: '请选择教师',
+        trigger: 'change'
+    }],
+    courseId: [{
+        required: true,
+        message: '请选择课程',
+        trigger: 'change'
+    }],
+    duration: [{
+        required: true,
+        message: '请选择课程时长',
+        trigger: 'change'
+    }],
+    beginTime: [{
+        required: true,
+        message: '请选择上课时间',
+        trigger: 'change'
+    }]
+});
+
+const { resetFields, validate, validateInfos } = useForm(addParm, rules);
+
+// 上课日期选择
+const selectTime = ref<[Dayjs, Dayjs]>();
+
+// 日期选择事件回调
+const openChange = (data: string, dateString: string[]) => {
+    console.log("日期：" + data, dateString);
+    addParm.startDate = dateString[0];
+    addParm.endDate = dateString[1];
+};
+
+const weekOptions = [
+    { label: '星期一', value: 1 },
+    { label: '星期二', value: 2 },
+    { label: '星期三', value: 3 },
+    { label: '星期四', value: 4 },
+    { label: '星期五', value: 5 },
+    { label: '星期六', value: 6 },
+    { label: '星期日', value: 7 }
+];
+
+// 上课时间
+const beginTime1 = ref<Dayjs>(dayjs('08:00', 'HH:mm'));
+
+// 上课时间点击事件
+const beginTimeChange = () => {
+    getEndTime();
+};
+
+// 课程时长
+const inputNumber = ref<number>(60);
+
+// 在定义 endTime1 时设置默认值
+const endTime1 = ref<Dayjs | null>(null);
+
+// 下课时间变化事件处理函数
+const endTimeChange = (time: Dayjs | null) => {
+    if (time && beginTime1.value) {
+        const beginTime = dayjs(beginTime1.value, "HH:mm");
+        const endTime = dayjs(time, "HH:mm");
+        if (endTime.isBefore(beginTime)) {
+            message.error('下课时间不能早于上课时间');
+            endTime1.value = beginTime.add(inputNumber.value, 'minute'); // 设置下课时间为上课时间加上上课时长
+        } else {
+            const durationInMinutes = endTime.diff(beginTime, 'minutes');
+            inputNumber.value = durationInMinutes;
+        }
+    }
+};
+
+// 设置时间
+const getEndTime = () => {
+    if (beginTime1.value) {
+        endTime1.value = dayjs(beginTime1.value, "HH:mm").add(inputNumber.value, 'minute');
+        addParm.beginTime = dayjs(beginTime1.value, "HH:mm").format('HH:mm');
+        addParm.endTime = endTime1.value ? endTime1.value.format('HH:mm') : '';
+        addParm.duration = inputNumber.value;
+    }
+};
+
+// 注册事件
+const emit = defineEmits(['refreshList']);
+const loading = ref(false);
+
+// 添加一个响应式变量来存储 handleCourseChange 的结果
+const courseScheduleData = ref<any[]>([]);
+const roomScheduleData = ref<any[]>([]);
+const teacherScheduleData = ref<any[]>([]);
+const CourseTypeData = ref<any[]>([]);
+const termScheduleData = ref<any[]>([]);
+
+// 批量删除相关的响应式变量
+const selectedScheduleIds = ref<string[]>([]);
+const selectAll = ref(false);
+const indeterminate = ref(false);
+
+// 计算属性：根据阶段名称分组课程排程数据
+const groupedCourseScheduleData = computed(() => {
+    const grouped: Record<string, any[]> = {};
+    if (!courseScheduleData.value) return grouped;
+
+    courseScheduleData.value.forEach(schedule => {
+        let stage = '无阶段'; // Default stage
+
+        // Extract stage from lessonName
+        if (schedule.lessonName.includes('精讲')) {
+            stage = '精讲';
+        } else if (schedule.lessonName.includes('密训')) {
+            stage = '密训';
+        } else if (schedule.lessonName.includes('真题')) {
+            stage = '真题';
+        } else if (schedule.lessonName.includes('考点')) {
+            stage = '考点';
+        }else if (schedule.lessonName.includes('其他')) {
+            stage = '其他';
+        }
+
+        if (!grouped[stage]) {
+            grouped[stage] = [];
+        }
+        grouped[stage].push(schedule);
+    });
+
+    return grouped;
+});
+
+// 修改 handleCourseChange 函数
+const handleCourseChange = async (params: any) => {
+    console.log(`selected ${params}`);
+    // Use existing listParm and only update courseId
+    const courseParams = { ...listParm, courseId: params };
+    
+    // 清空已选择的课时
+    Object.keys(selectedSchedules).forEach(key => {
+        selectedSchedules[key] = false;
+    });
+    
+    // 重置全选状态
+    allSelected.value = false;
+    isIndeterminate.value = false;
+    
+    try {
+        if (params !== '' && params !== null && params !== undefined) {
+            // 获取当前课程的排课信息
+            const res = await getScheduleListApi(courseParams) as any;
+            if (res && res.code === 200) {
+                // 将查询到的数据赋值给 courseScheduleData
+                console.log("该课程已排时间:" + JSON.stringify(res.data));
+                courseScheduleData.value = res.data;
+            }
+
+            // 获取合并课程的考期信息
+            await fetchMergedCourseTerms(params.toString());
+            
+            // 获取考期已排时间
+            await getTermScheduleData(params.toString());
+            
+            // 获取所有相关考期的排课数据（用于检查冲突）
+            const allTermData = await getAllTermSchedules(params.toString());
+            allTermSchedules.value = allTermData;
+            
+            // 更新推荐课时（触发计算属性重新计算）
+            console.log("触发推荐课时重新计算");
+        } else {
+            courseScheduleData.value = [];
+            mergedCourseTerms.value = [];
+            allTermSchedules.value = [];
+            termScheduleData.value = [];
+        }
+
+        // For course type query
+        if (params !== '' && params !== null && params !== undefined) {
+            const courseTypeParams = { ...listParm, courseType: params };
+            const res = await getCourseTypeListApi(courseTypeParams) as any;
+            if (res && res.code === 200) {
+                console.log("考期:" + JSON.stringify(res.data));
+                CourseTypeData.value = res.data;
+            }
+        } else {
+            CourseTypeData.value = [];
+        }
+    } catch (error) {
+        console.error('获取课程排程信息失败', error);
+    }
+};
+
+const handleClassRoomChange = async (params: any) => {
+    console.log("教室")
+    console.log(`selected ${params}`);
+    // Use spread operator with listParm
+    const roomParams = { ...listParm, roomId: params };
+    
+    try {
+        if (params !== '' && params !== null && params !== undefined) {
+            const res = await getClassRoomListApi(roomParams) as any;
+            if (res && res.code === 200) {
+                // 新的去重逻辑：基于 dateTime, beginTime, endTime 组合去重
+                const uniqueSchedulesMap = new Map();
+                res.data.forEach((item: any) => {
+                    const key = `${item.dateTime}-${item.beginTime}-${item.endTime}`;
+                    if (!uniqueSchedulesMap.has(key)) {
+                        uniqueSchedulesMap.set(key, item);
+                    }
+                });
+                const uniqueData = Array.from(uniqueSchedulesMap.values());
+
+                // 对去重后的数据进行排序，假设根据 dateTime 字段排序
+                uniqueData.sort((a: any, b: any) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime());
+                // 将去重并排序后的数据赋值给 roomScheduleData
+                roomScheduleData.value = uniqueData;
+            }
+        } else {
+            roomScheduleData.value = [];
+        }
+    } catch (error) {
+        console.error('获取课程排程信息失败', error);
+    }
+};
+
+// 还得添加一个考期剔除
+
+const handleTeaChange = async (params: any) => {
+    console.log("教师")
+    console.log(`selected ${params}`);
+    // Use spread operator with listParm
+    const teacherParams = { ...listParm, teacherId: params };
+    
+    try {
+        if (params !== '' && params !== null && params !== undefined) {
+            const res = await getTeaListApi(teacherParams) as any;
+            if (res && res.code === 200) {
+                // 新的去重逻辑：基于 dateTime, beginTime, endTime 组合去重
+                const uniqueSchedulesMap = new Map();
+                res.data.forEach((item: any) => {
+                    const key = `${item.dateTime}-${item.beginTime}-${item.endTime}`;
+                    if (!uniqueSchedulesMap.has(key)) {
+                        uniqueSchedules

@@ -10,8 +10,8 @@
                 <a-row>
                     <a-col :span="12">
                         <a-form-item v-bind="validateInfos.courseYear" :labelCol="{ style: 'width:80px;' }" label="学年">
-                            <a-date-picker placeholder="请选择学年" class="date-year" v-model:value="inputYear" picker="year"
-                                @openChange="openChange"></a-date-picker>
+                            <a-date-picker placeholder="请选择学年" class="date-year" v-model:value="inputYear"
+                                picker="month" @openChange="openChange"></a-date-picker>
                         </a-form-item>
                     </a-col>
                     <a-col :span="12">
@@ -40,11 +40,21 @@
                         </a-form-item>
                     </a-col>
                 </a-row>
+                
+                <!-- 远智课程ID -->
+                <a-row>
+                    <a-col :span="24">
+                        <a-form-item :labelCol="{ style: 'width:80px;' }" label="远智课程ID">
+                            <a-input v-model:value="addModel.yuanzhiCourseId" placeholder="请输入远智课程ID"></a-input>
+                        </a-form-item>
+                    </a-col>
+                </a-row>
+                
                 <!-- 动态渲染合并课程表单 -->
                 <a-row v-for="(mergeForm, index) in mergeForms" :key="index">
                     <a-col :span="24">
                         <merge-course-form ref="mergeCourseForms" :courseColor="addModel.courseColor"
-                            :courseYear="addModel.courseYear" @remove="removeMergeForm(index)"/>
+                            :courseYear="addModel.courseYear" @remove="removeMergeForm(index)" />
                     </a-col>
                 </a-row>
 
@@ -52,7 +62,8 @@
                     <a-col :span="12" v-if="dialog.title != '编辑'">
                         <a-form-item class="icon-merge">
                             是否合并：
-                            <plus-square-outlined class="icon-merge-plus" @click="MergeClass" v-model:value="addModel.isMergeClasses" />
+                            <plus-square-outlined class="icon-merge-plus" @click="MergeClass"
+                                v-model:value="addModel.isMergeClasses" />
                         </a-form-item>
                     </a-col>
                 </a-row>
@@ -64,6 +75,7 @@
     </sys-dialog>
 </template>
 <script setup lang="ts">
+
 import MergeCourseForm from './MergeCourseForm.vue';
 import { reactive, ref } from 'vue'
 // 引入弹窗组件
@@ -125,7 +137,8 @@ const addModel = reactive<CourseModel>({
     courseYear: '',
     courseColor: '#ff0000',
     type: '',
-    isMergeClasses: '0'
+    isMergeClasses: '0',
+    yuanzhiCourseId: ''
 })
 
 // 获取全局属性
@@ -222,7 +235,9 @@ const handleClose = () => {
 
 // 日历事件
 const openChange = () => {
-    addModel.courseYear = dayjs(inputYear.value).format('YYYY')
+    if (inputYear.value) {
+        addModel.courseYear = dayjs(inputYear.value).format('YYYY-MM');
+    }
 }
 
 // 更新颜色
@@ -270,17 +285,16 @@ defineExpose({
     // margin-top: 10px;
 }
 
-.icon-merge{
+.icon-merge {
     height: 40px;
     display: flex;
     // justify-content: center;
     align-items: center;
 }
 
-.icon-merge-plus{
+.icon-merge-plus {
     font-size: 20px !important;
     opacity: 0.7 !important;
-    color: #0f0f0f!important;
+    color: #0f0f0f !important;
 }
-
 </style>

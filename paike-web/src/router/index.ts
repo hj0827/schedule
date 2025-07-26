@@ -145,39 +145,49 @@ export const routes: Array<RouteRecordRaw> = [
   //     },
   //   ],
   // },
-  // {
-  //   path: '/scheduleRoot',
-  //   component: Layout,
-  //   name: 'scheduleRoot',
-  //   meta: {
-  //     title: '排课管理',
-  //     icon: 'el-icon-menu',
-  //     roles: ['sys:manage'],
-  //     parentId: 0,
-  //   },
-  //   children: [
-  //     {
-  //       path: '/schedule',
-  //       component: () => import('../views/schedule/Schedule.vue'),
-  //       name: 'schedule',
-  //       meta: {
-  //         title: '排课日历',
-  //         icon: 'el-icon-s-custom',
-  //         roles: ['sys:user'],
-  //       },
-  //     },
-  //     {
-  //       path: '/scheduleList',
-  //       component: () => import('../views/schedule/ScheduleList.vue'),
-  //       name: 'scheduleList',
-  //       meta: {
-  //         title: '排课列表',
-  //         icon: 'el-icon-s-custom',
-  //         roles: ['sys:user'],
-  //       },
-  //     },
-  //   ],
-  // },
+  {
+    path: '/scheduleRoot',
+    component: Layout,
+    name: 'scheduleRoot',
+    meta: {
+      title: '排课管理',
+      icon: 'AppstoreOutlined',
+      roles: ['sys:manage'],
+      parentId: 0,
+    },
+    children: [
+      {
+        path: '/schedule',
+        component: () => import('../views/schedule/Schedule.vue'),
+        name: 'schedule',
+        meta: {
+          title: '排课日历',
+          icon: 'CalendarOutlined',
+          roles: ['sys:user'],
+        },
+      },
+      {
+        path: '/scheduleList',
+        component: () => import('../views/schedule/ScheduleList.vue'),
+        name: 'scheduleList',
+        meta: {
+          title: '排课列表',
+          icon: 'UnorderedListOutlined',
+          roles: ['sys:user'],
+        },
+      },
+      {
+        path: '/statistics',
+        component: () => import('../views/schedule/Statistics.vue'),
+        name: 'statistics',
+        meta: {
+          title: '课时统计',
+          icon: 'BarChartOutlined',
+          roles: ['sys:user'],
+        },
+      },
+    ],
+  },
 ];
 
 const router = createRouter({

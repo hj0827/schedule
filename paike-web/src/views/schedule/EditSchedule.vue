@@ -84,11 +84,9 @@ const { roomOptions, teacherOptions, courseOptions, courseOptionsPaike, filterCo
 // 获取弹窗属性
 const { dialog, onShow, onClose } = useDialog()
 
-
 // 定义弹窗显示的方法
 const show = (type: string, row?: any) => {
     // 设置弹窗属性
-
     dialog.height = 300;
     dialog.width = 700;
     // 显示弹窗
@@ -102,7 +100,6 @@ const show = (type: string, row?: any) => {
         inputNumber.value = row.duration;
         endTime1.value = dayjs(row.endTime, "HH:mm");
     }
-
 }
 
 defineExpose({
@@ -130,20 +127,11 @@ const addParm = reactive({
     roomAddress: '',
     startDate: '', // 开课日期
     endDate: '', // 结课日期
+    delId: 0,
 })
 
 // 表单验证
 const rules = reactive({
-    weeks: [{
-        required: true,
-        message: '请选择星期几',
-        trigger: 'change'
-    }],
-    startDate: [{
-        required: true,
-        message: '请选择日期',
-        trigger: 'change'
-    }],
     roomId: [{
         required: true,
         message: '请选择教室',
@@ -159,14 +147,16 @@ const rules = reactive({
         message: '请选择课程',
         trigger: 'change'
     }],
-    duration: [{
+    dateTime: [{
         required: true,
-        message: '请选择课程时长',
+        message: '请选择上课日期',
         trigger: 'change'
     }],
-    beginTime: [{
+    duration: [{
         required: true,
-        message: '请选择上课时间',
+        type: 'number',
+        min: 1,
+        message: '请输入有效的课程时长',
         trigger: 'change'
     }]
 })
@@ -209,36 +199,59 @@ const getEndTime = () => {
 // 注册事件
 const emit = defineEmits(['refreshList'])
 
-// 编辑弹窗确定
+// 弹窗确认
 const onConfirm = async () => {
     try {
         // 表单验证
-        await formRef.value.validate();
-        console.log('表单验证通过:', addParm);
+        await validate();
+        
+        // 确保时间数据正确
+        if (beginTime1.value && endTime1.value) {
+            addParm.beginTime = beginTime1.value.format('HH:mm');
+            addParm.endTime = endTime1.value.format('HH:mm');
+            addParm.duration = inputNumber.value || 0;
+        }
 
         // 发送请求到服务器
-        try {
-            let res = await updateCalendarListApi(addParm) as any;
-            if (res && res.code === 200) {
-                console.log("编辑成功");
-                message.success(res.msg);
-            } else {
-                console.log("编辑失败:", res);
-                // message.error(res.msg || '编辑失败');
-            }
+        // Create a payload with only the necessary fields for the backend
+        const updatePayload = {
+            id: addParm.id,
+            roomId: addParm.roomId,
+            teacherId: addParm.teacherId,
+            dateTime: addParm.dateTime,
+            beginTime: addParm.beginTime,
+            duration: addParm.duration,
+            endTime: addParm.endTime,
+            // Include fields from the database schema that are part of the record structure,
+            // even if not directly editable in this dialog.
+            courseId: addParm.courseId, // course_id exists in db
+            courseType: addParm.courseType, // course_type exists in db
+            delId: addParm.delId, // del_id exists in db
+        };
+
+        // Send update request for the parent/single record
+        const res = await updateCalendarApi(updatePayload) as { code: number; msg: string; };
+
+        if (res && res.code === 200) {
+            message.success(res.msg || '编辑成功');
             // 关闭弹窗
             onClose();
             // 刷新列表
             emit('refreshList');
-        } catch (serverError) {
-            console.error('服务器请求失败:', serverError);
-            // message.error('服务器请求失败，请稍后再试');
+        } else {
+            message.error(res.msg || '编辑失败');
         }
-    } catch (validationError) {
-        console.error('表单验证失败:', validationError);
-        message.error('表单验证失败，请检查输入');
+    } catch (error: any) {
+        console.error('保存失败:', error);
+        if (error.response?.data?.msg) {
+            message.error(error.response.data.msg);
+        } else if (error.errorFields) {
+            message.error('请检查表单填写是否完整');
+        } else {
+            message.error('保存失败，请稍后重试');
+        }
     }
-}
+};
 
 const openChange = (data: string, dateString: string) => {
     addParm.startDate = dateString[0]

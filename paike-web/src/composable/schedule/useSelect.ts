@@ -63,7 +63,7 @@ export default function useselect(getList: FuncList, listParm: ListParm) {
                 .map((item: any) => ({
                     value: item.value,
                     label: `${item.label} - ${item.courseType}`,
-                    courseType: res.data, 
+                    courseType: res.data,  // 传递全部课程数据用于获取合并课程的考期
                     isMergeClasses: item.isMergeClasses
                 }));
         }

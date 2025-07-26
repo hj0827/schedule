@@ -18,6 +18,13 @@
             </a-col>
         </a-row>
         <a-row class="custom-icon">
+            <a-col :span="24">
+                <a-form-item :labelCol="{ style: 'width:150px;' }" label="【合并】远智课程ID">
+                    <a-input v-model:value="mergeForm.yuanzhiCourseId" placeholder="请输入远智课程ID"></a-input>
+                </a-form-item>
+            </a-col>
+        </a-row>
+        <a-row class="custom-icon">
             <!-- 取消 -->
             <a-col :span="24">
                 <a-form-item>
@@ -46,6 +53,7 @@ interface MergeForm {
     courseColor: string;
     type: string;
     isMergeClasses: string;
+    yuanzhiCourseId: string;
 }
 
 
@@ -64,7 +72,8 @@ const mergeForm = reactive<MergeForm>({
     courseYear: props.courseYear,
     courseColor: props.courseColor,
     type: '',
-    isMergeClasses: '1'
+    isMergeClasses: '1',
+    yuanzhiCourseId: ''
 })
 
 // 表单验证规则

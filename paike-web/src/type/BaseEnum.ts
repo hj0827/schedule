@@ -28,5 +28,6 @@ export enum DocumentTitle{
     scheduleCalendar = '排课日历',
     scheduleCalendarList = '排课日历列表',
     index = '首页',
-    login = '登录'
+    login = '登录',
+    statistics = '课时统计'
 }

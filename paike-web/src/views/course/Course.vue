@@ -32,7 +32,9 @@
     <!-- 表格列表 -->
     <a-table  :dataSource="tableList.list" :columns="columns" :pagination="rolePage" bordered
         :scroll="{ y: tableHeight }" rowKey="courseId" :indentSize="15"
-        :row-selection="{ selectedRowKeys: selectedCourseIds, onChange: onSelectChange, type: 'checkbox' }">
+        :row-selection="{ selectedRowKeys: selectedCourseIds, onChange: onSelectChange, type: 'checkbox' }"
+        :expandedRowKeys="expandedRowKeys"
+        @expand="onExpand">
         <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'courseType'">
                 <a-tag v-if="record.courseType === '0'" color="green">春季</a-tag>
@@ -78,7 +80,7 @@ import useTable from '../../composable/course/useTable';
 import useCourse from '../../composable/course/useCourse';
 
 // 表格相关的操作
-const { rolePage, tableList, columns, tableHeight, listParm, getList } = useTable()
+const { rolePage, tableList, columns, tableHeight, listParm, getList, expandedRowKeys, onExpand } = useTable()
 
 const options = ref<SelectProps['options']>([
     { label: '春季', value: '0' },

@@ -19,6 +19,8 @@
                 :options="teacherOptions" :filter-option="filterTeacheroption" allowClear>
             </a-select>
         </a-form-item>
+        <!-- 考期 -->
+        <!--  -->
         <a-button style="margin-right: 10px;" @click="searchBtn">
             <template #icon>
                 <search-outlined />
