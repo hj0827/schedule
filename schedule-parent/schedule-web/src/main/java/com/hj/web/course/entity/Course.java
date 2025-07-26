@@ -31,7 +31,8 @@ public class Course {
     private String isMergeClasses;
 //    父级id
     private Long parentCourseId;
-
+//    远智课程id
+    private String yuanzhiCourseId;
 
 
 }

@@ -1,0 +1,1 @@
+import{d as a,c as s,e as n,f as t,i as c,g as r,_}from"./index-DFxeWJFZ.js";const p={key:0,class:"loading-overlay"},i=a({__name:"loadingOverlay",props:{visible:{type:Boolean}},setup(l){return(e,d)=>{const o=r("a-spin");return e.visible?(s(),n("div",p,[t(o)])):c("",!0)}}}),v=_(i,[["__scopeId","data-v-e7d35c37"]]);export{v as L};

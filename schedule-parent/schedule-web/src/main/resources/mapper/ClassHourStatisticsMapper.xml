@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hj.web.schedule.mapper.ClassHourStatisticsMapper">
+    <resultMap id="ClassHourStatisticsResultMap" type="com.hj.web.schedule.entity.ClassHourStatistics">
+        <id column="id" property="id"/>
+        <result column="teacher_id" property="teacherId"/>
+        <result column="teacher_name" property="teacherName"/>
+        <result column="course_id" property="courseId"/>
+        <result column="course_name" property="courseName"/>
+        <result column="total_hours" property="totalHours"/>
+        <result column="completed_hours" property="completedHours"/>
+        <result column="remaining_hours" property="remainingHours"/>
+        <result column="start_date" property="startDate"/>
+        <result column="end_date" property="endDate"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="course_count" property="courseCount"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, teacher_id, teacher_name, course_id, course_name, total_hours, completed_hours,
+        remaining_hours, start_date, end_date, status, create_time, update_time
+    </sql>
+
+    <select id="findStatistics" resultMap="ClassHourStatisticsResultMap">
+        SELECT 
+            t.teacher_id,
+            t.teacher_name,
+            t.course_id,
+            t.course_name,
+            SUM(t.total_hours) as total_hours,
+            COUNT(t.id) as course_count
+        FROM schedule_course t
+        WHERE 1=1
+        <if test="teacherId != null">
+            AND t.teacher_id = #{teacherId}
+        </if>
+        <if test="courseId != null">
+            AND t.course_id = #{courseId}
+        </if>
+        <if test="startDate != null">
+            AND t.date_time >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND t.date_time &lt;= #{endDate}
+        </if>
+        GROUP BY t.teacher_id, t.teacher_name, t.course_id, t.course_name
+        ORDER BY t.teacher_id, t.course_id
+    </select>
+
+    <select id="findById" resultMap="ClassHourStatisticsResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM class_hour_statistics
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insertStatistics" parameterType="com.hj.web.schedule.entity.ClassHourStatistics">
+        INSERT INTO class_hour_statistics (
+            teacher_id, teacher_name, course_id, course_name, total_hours,
+            completed_hours, remaining_hours, start_date, end_date, status,
+            create_time, update_time
+        )
+        VALUES (
+            #{teacherId}, #{teacherName}, #{courseId}, #{courseName}, #{totalHours},
+            #{completedHours}, #{remainingHours}, #{startDate}, #{endDate}, #{status},
+            NOW(), NOW()
+        )
+    </insert>
+
+    <update id="updateStatistics" parameterType="com.hj.web.schedule.entity.ClassHourStatistics">
+        UPDATE class_hour_statistics
+        SET
+            teacher_id = #{teacherId},
+            teacher_name = #{teacherName},
+            course_id = #{courseId},
+            course_name = #{courseName},
+            total_hours = #{totalHours},
+            completed_hours = #{completedHours},
+            remaining_hours = #{remainingHours},
+            start_date = #{startDate},
+            end_date = #{endDate},
+            status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper> 

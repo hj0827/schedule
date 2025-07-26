@@ -29,5 +29,6 @@ public class ScheduleCourseListVo {
     //下课时间
     private LocalTime endTime;
     private String courseType;
+    private String lessonName;
 
 }

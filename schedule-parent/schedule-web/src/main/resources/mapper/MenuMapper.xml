@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.hj.web.menu.mapper.MenuMapper">
     <select id="getMenuByUserId" resultType="com.hj.web.menu.entity.Menu">
-       select m.* from user_role as ur
+       select DISTINCT m.* from user_role as ur
        left join role as r on ur.role_id = r.role_id
        left join role_menu as rm on r.role_id = rm.role_id
        left join menu as m on rm.menu_id = m.menu_id
@@ -11,7 +11,7 @@
        order by m.order_num asc
     </select>
     <select id="getMenuByRoleId" resultType="com.hj.web.menu.entity.Menu">
-       select m.* from role_menu as rm,menu as m
+       select DISTINCT m.* from role_menu as rm,menu as m
        where rm.menu_id = m.menu_id
        and rm.role_id = #{roleId}
        order by m.order_num asc

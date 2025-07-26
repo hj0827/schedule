@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hj.web.course.mapper.StageMapper">
+    <!-- 可选：结果映射 -->
+    <resultMap id="StageResultMap" type="com.hj.web.course.entity.Stage">
+        <id property="id" column="id"/>
+        <result property="stageName" column="stage_name"/>
+        <result property="description" column="description"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 查询所有阶段 -->
+    <select id="selectAllStages" resultMap="StageResultMap">
+        SELECT *
+        FROM stage_table
+    </select>
+
+    <!-- 更新阶段 -->
+    <update id="updateStage">
+        UPDATE stage_table
+        SET
+            stage_name = #{stageName},
+            description = #{description},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除阶段 -->
+    <delete id="deleteStage">
+        DELETE FROM stage_table
+        WHERE id = #{id}
+    </delete>
+
+    <insert id="insertStage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO stage_table (stage_name, description)
+        VALUES (#{stageName}, #{description})
+    </insert>
+
+</mapper>

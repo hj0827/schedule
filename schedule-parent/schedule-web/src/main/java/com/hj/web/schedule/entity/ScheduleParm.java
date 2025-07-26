@@ -27,4 +27,6 @@ public class ScheduleParm {
     private Long duration;
     private List<ScheduleCourse> scheduleCourses;
     private String courseType;
+    private String lessonName;
+    private Integer stageId;
 }

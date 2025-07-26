@@ -11,14 +11,20 @@
         course.course_type,
         course.major_name,
         teacher.teacher_name,
+        teacher.teacher_desc,
         cs.date_time,
         cs.begin_time,
         cs.end_time,
         cs.duration,
+        cs.del_id,
         classroom.room_name,
         classroom.room_address,
         course.course_year,
-        course.course_color
+        course.course_color,
+        cs.lesson_name,
+        cs.stage_id,
+        stage_table.description as stage_description,
+        course.yuanzhi_course_id
     </sql>
 
     <select id="getScheduleList" resultType="com.hj.web.schedule.entity.ScheduleCourseListVo">
@@ -28,6 +34,7 @@
         left join classroom on cs.room_id=classroom.room_id
         left join course on cs.course_id=course.course_id
         left join teacher on cs.teacher_id=teacher.teacher_id
+        left join stage_table on cs.stage_id=stage_table.id
         where 1=1
         <if test="ew.sqlSegment != ''">
             and ${ew.sqlSegment}
@@ -41,6 +48,7 @@
         left join classroom on cs.room_id = classroom.room_id
         left join course on cs.course_id = course.course_id
         left join teacher on cs.teacher_id = teacher.teacher_id
+        left join stage_table on cs.stage_id = stage_table.id
         <where>
             <if test="query.roomId != null">
                 AND cs.room_id = #{query.roomId}
@@ -51,9 +59,103 @@
             <if test="query.teacherId != null">
                 AND cs.teacher_id = #{query.teacherId}
             </if>
+            <if test="query.startDate != null and query.startDate != ''">
+                AND cs.date_time &gt;= #{query.startDate}
+            </if>
+            <if test="query.endDate != null and query.endDate != ''">
+                AND cs.date_time &lt;= #{query.endDate}
+            </if>
         </where>
         order by course.course_type asc, cs.date_time asc,cs.begin_time asc,course.course_type asc
     </select>
+
+    <select id="selectCourseSchedulingListWithPage" parameterType="com.hj.web.schedule.entity.ListParm" resultType="com.hj.web.schedule.entity.ScheduleCourse">
+        select
+        <include refid="column"></include>
+        from schedule_course cs
+        left join classroom on cs.room_id = classroom.room_id
+        left join course on cs.course_id = course.course_id
+        left join teacher on cs.teacher_id = teacher.teacher_id
+        left join stage_table on cs.stage_id = stage_table.id
+        <where>
+            <if test="query.roomId != null">
+                AND cs.room_id = #{query.roomId}
+            </if>
+            <if test="query.courseId != null">
+                AND cs.course_id = #{query.courseId}
+            </if>
+            <if test="query.teacherId != null">
+                AND cs.teacher_id = #{query.teacherId}
+            </if>
+            <if test="query.startDate != null and query.startDate != ''">
+                AND cs.date_time &gt;= #{query.startDate}
+            </if>
+            <if test="query.endDate != null and query.endDate != ''">
+                AND cs.date_time &lt;= #{query.endDate}
+            </if>
+        </where>
+        order by course.course_type asc, cs.date_time asc,cs.begin_time asc,course.course_type asc
+    </select>
+
+    <select id="selectClassRoomlingList" parameterType="com.hj.web.schedule.entity.ListParm" resultType="com.hj.web.schedule.entity.ScheduleCourse">
+        select
+        <include refid="column"></include>
+        from schedule_course cs
+        left join classroom on cs.room_id = classroom.room_id
+        left join course on cs.course_id = course.course_id
+        left join teacher on cs.teacher_id = teacher.teacher_id
+        left join stage_table on cs.stage_id = stage_table.id
+        <where>
+            <if test="query.roomId != null">
+                AND cs.room_id = #{query.roomId}
+            </if>
+<!--            <if test="query.courseId != null">-->
+<!--                AND cs.course_id = #{query.courseId}-->
+<!--            </if>-->
+<!--            <if test="query.teacherId != null">-->
+<!--                AND cs.teacher_id = #{query.teacherId}-->
+<!--            </if>-->
+            <if test="query.startDate != null and query.startDate != ''">
+                AND cs.date_time &gt;= #{query.startDate}
+            </if>
+            <if test="query.endDate != null and query.endDate != ''">
+                AND cs.date_time &lt;= #{query.endDate}
+            </if>
+        </where>
+        order by course.course_type asc, cs.date_time asc,cs.begin_time asc,course.course_type asc
+    </select>
+
+
+    <select id="selectTeaList" parameterType="com.hj.web.schedule.entity.ListParm" resultType="com.hj.web.schedule.entity.ScheduleCourse">
+        select
+        <include refid="column"></include>
+        from schedule_course cs
+        left join classroom on cs.room_id = classroom.room_id
+        left join course on cs.course_id = course.course_id
+        left join teacher on cs.teacher_id = teacher.teacher_id
+        left join stage_table on cs.stage_id = stage_table.id
+        <where>
+<!--            <if test="query.roomId != null">-->
+<!--                AND cs.room_id = #{query.roomId}-->
+<!--            </if>-->
+<!--            <if test="query.courseId != null">-->
+<!--                AND cs.course_id = #{query.courseId}-->
+<!--            </if>-->
+            <if test="query.teacherId != null">
+                AND cs.teacher_id = #{query.teacherId}
+            </if>
+            <if test="query.startDate != null and query.startDate != ''">
+                AND cs.date_time &gt;= #{query.startDate}
+            </if>
+            <if test="query.endDate != null and query.endDate != ''">
+                AND cs.date_time &lt;= #{query.endDate}
+            </if>
+        </where>
+        order by course.course_type asc, cs.date_time asc,cs.begin_time asc,course.course_type asc
+    </select>
+
+
+
 
     <select id="getScheduleCourseList" resultType="com.hj.web.schedule.entity.ScheduleCourse">
         select
@@ -62,17 +164,19 @@
         left join classroom on cs.room_id = classroom.room_id
         left join course on cs.course_id = course.course_id
         left join teacher on cs.teacher_id = teacher.teacher_id
-        where 1=1
-        <if test="courseName != null and courseName != ''">
-            and course.course_name like CONCAT('%', #{courseName}, '%')
-        </if>
-        <if test="courseType != null and courseType != ''">
-            and course.course_type like CONCAT('%', #{courseType}, '%')
-        </if>
-        <if test="teacherName != null and teacherName != ''">
-            and teacher.teacher_name like CONCAT('%', #{teacherName}, '%')
-        </if>
-        order by course.course_type asc, cs.date_time asc,cs.begin_time asc,course.course_type asc
+        left join stage_table on cs.stage_id = stage_table.id
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="getScheduleCourseListWithPage" resultType="com.hj.web.schedule.entity.ScheduleCourse">
+        select
+        <include refid="column"/>
+        from schedule_course cs
+        left join classroom on cs.room_id = classroom.room_id
+        left join course on cs.course_id = course.course_id
+        left join teacher on cs.teacher_id = teacher.teacher_id
+        left join stage_table on cs.stage_id = stage_table.id
+        ${ew.customSqlSegment}
     </select>
 
     <select id="getCourseTypeByCourseId" resultType="java.lang.String">
@@ -80,6 +184,13 @@
         FROM course
         WHERE course_id = #{courseId}
     </select>
+
+<!--根据delId删除已排课程-->
+    <delete id="deleteByDelId">
+        DELETE FROM schedule_course
+        WHERE del_id = #{delId}
+    </delete>
+
 
 
 

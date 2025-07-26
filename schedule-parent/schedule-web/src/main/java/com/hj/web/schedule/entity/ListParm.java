@@ -26,4 +26,5 @@ public class ListParm implements Serializable {
     private String courseType;
     private Integer currentPage;
     private Integer pageSize;
+    private String lessonName;
 }
