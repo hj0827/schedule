@@ -52,3 +52,7 @@ Thumbs.db
 
 # 其他项目特定文件
 /相关文档/
+
+/sql/
+
+/.gitignore
