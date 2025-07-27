@@ -167,7 +167,10 @@
                                         v-model:checked="selectedSchedules[item.schedule]" class="schedule-checkbox"
                                         @click.stop />
                                     <div class="schedule-content" @click="toggleScheduleItem(item.schedule)">
-                                        <div class="schedule-time">{{ item.schedule }}</div>
+                                        <div class="schedule-time">
+                                            <span class="week-day-tag">{{ getDayOfWeek(item.schedule.split('【')[0]) }}</span>
+                                            {{ item.schedule }}
+                                        </div>
                                         <div class="conflict-tags">
                                             <a-tag v-if="item.conflicts.classroom" color="red">教室冲突</a-tag>
                                             <a-tag v-if="item.conflicts.teacher" color="red">教师冲突</a-tag>
@@ -215,6 +218,9 @@
                                                     @change="(e) => handleScheduleSelect(String(schedule.delId), e.target.checked)">
                                                 </a-checkbox>
                                                 <span class="schedule-content">
+                                                    <span class="week-day-tag">
+                                                        {{ getDayOfWeek(schedule.dateTime) }}
+                                                    </span>
                                                     {{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime }}【{{
                                                         schedule.beginTime.substring(0, 5) }} ~
                                                     {{ schedule.endTime.substring(0, 5) }}】
@@ -291,6 +297,9 @@
                                 <ul v-if="teacherScheduleData.length > 0">
                                     <li v-for="(schedule, index) in teacherScheduleData" :key="index"
                                         class="teacher-schedule-item">
+                                        <span class="week-day-tag">
+                                            {{ getDayOfWeek(schedule.dateTime) }}
+                                        </span>
                                         {{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime }}【{{
                                             schedule.beginTime.substring(0, 5) }} ~
                                         {{ schedule.endTime.substring(0, 5) }}】
@@ -1189,6 +1198,13 @@ const saveSingleRecommendedSchedule = async (date: string, beginTime: string, en
     } finally {
         loading.value = false; // 请求结束后设置 loading 为 false
     }
+};
+
+// 获取星期几的函数
+const getDayOfWeek = (dateStr: string) => {
+    const date = dayjs(dateStr);
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+    return '周' + weekDays[date.day()];
 };
 
 // Method to format lesson name for display
@@ -2242,4 +2258,10 @@ li {
     flex: 1;
 }
 
+.week-day-tag {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 14px;
+    color: #1890ff;
+}
 </style>
