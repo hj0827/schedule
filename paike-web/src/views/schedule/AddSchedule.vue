@@ -61,7 +61,7 @@
                         </a-form-item>
                         <a-form-item label="时间段组" :labelCol="{ style: 'width:80px;' }">
                             <a-radio-group v-model:value="selectedTimeGroup" @change="handleTimeGroupChange">
-                                <a-radio :value="1">全天班</a-radio>
+                                <!-- <a-radio :value="1">全天班</a-radio> -->
                                 <a-radio :value="2">周一至周五晚班</a-radio>
                                 <a-radio :value="3">周末班</a-radio>
                             </a-radio-group>
@@ -131,11 +131,8 @@
                                 <h3>推荐课时</h3>
                                 <div class="header-actions">
                                     <a-tooltip placement="top" title="复制全部推荐课时">
-                                        <copy-outlined
-                                            class="copy-all-icon"
-                                            @click="copyAllRecommendedSchedules"
-                                            :style="{ color: filteredRecommendedSchedules.length > 0 ? '#1890ff' : '#d9d9d9' }"
-                                        />
+                                        <copy-outlined class="copy-all-icon" @click="copyAllRecommendedSchedules"
+                                            :style="{ color: filteredRecommendedSchedules.length > 0 ? '#1890ff' : '#d9d9d9' }" />
                                     </a-tooltip>
                                 </div>
                             </div>
@@ -162,16 +159,21 @@
                         <div class="scrollable-content">
                             <a-form-item label="">
                                 <div v-for="(item, index) in filteredRecommendedSchedules" :key="index"
-                                    class="recommended-schedule-item">
+                                    class="recommended-schedule-item" :class="{ 'disabled': item.disabled }">
                                     <a-checkbox :value="item.schedule"
                                         v-model:checked="selectedSchedules[item.schedule]" class="schedule-checkbox"
+                                        :disabled="item.disabled"
                                         @click.stop />
-                                    <div class="schedule-content" @click="toggleScheduleItem(item.schedule)">
+                                    <div class="schedule-content" 
+                                         @click="item.disabled ? undefined : toggleScheduleItem(item.schedule)"
+                                         :title="item.disabledReason">
                                         <div class="schedule-time">
-                                            <span class="week-day-tag">{{ getDayOfWeek(item.schedule.split('【')[0]) }}</span>
+                                            <span class="week-day-tag">{{ getDayOfWeek(item.schedule.split('【')[0])
+                                                }}</span>
                                             {{ item.schedule }}
                                         </div>
                                         <div class="conflict-tags">
+                                            <a-tag v-if="item.disabled" color="orange">{{ item.disabledReason }}</a-tag>
                                             <a-tag v-if="item.conflicts.classroom" color="red">教室冲突</a-tag>
                                             <a-tag v-if="item.conflicts.teacher" color="red">教师冲突</a-tag>
                                             <a-tag v-if="item.conflicts.courseTerm" color="red"
@@ -206,7 +208,8 @@
                                     <li v-for="(schedules, stage) in groupedCourseScheduleData" :key="stage">
                                         <h4 class="stage-header">
                                             {{ stage }} ({{ schedules.length }})
-                                            <span class="copy-btn" @click="copyStageSchedules(stage, schedules)" title="复制整个阶段">
+                                            <span class="copy-btn" @click="copyStageSchedules(stage, schedules)"
+                                                title="复制整个阶段">
                                                 <copy-outlined />
                                             </span>
                                         </h4>
@@ -221,7 +224,8 @@
                                                     <span class="week-day-tag">
                                                         {{ getDayOfWeek(schedule.dateTime) }}
                                                     </span>
-                                                    {{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime }}【{{
+                                                    {{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime
+                                                    }}【{{
                                                         schedule.beginTime.substring(0, 5) }} ~
                                                     {{ schedule.endTime.substring(0, 5) }}】
                                                 </span>
@@ -370,7 +374,9 @@ const timeGroups: Record<1 | 2 | 3, TimeSlot[]> = {
         { beginTime: '10:30', endTime: '11:30', duration: 60 },
         { beginTime: '14:00', endTime: '15:00', duration: 60 },
         { beginTime: '15:30', endTime: '16:30', duration: 60 },
-        { beginTime: '17:00', endTime: '18:00', duration: 60 }
+        { beginTime: '17:00', endTime: '18:00', duration: 60 },
+        { beginTime: '19:00', endTime: '20:00', duration: 60 },
+        { beginTime: '20:30', endTime: '21:30', duration: 60 }
     ]
 };
 
@@ -930,10 +936,36 @@ const recommendedSchedules = computed(() => {
             classroom: boolean,
             teacher: boolean,
             courseTerm: boolean
-        }
+        },
+        disabled?: boolean,
+        disabledReason?: string
     }[] = [];
     let currentDate = dayjs(startDate);
     const end = dayjs(endDate);
+
+    // 存储每天的课时数量（包括已排课时、已选中的推荐课时和考期冲突的课时）
+    const dailyScheduleCount: { [key: string]: number } = {};
+    const dailyTermConflictCount: { [key: string]: number } = {};
+
+    // 先统计现有课程每天的课时数量
+    courseScheduleData.value.forEach(schedule => {
+        const date = schedule.dateTime;
+        dailyScheduleCount[date] = (dailyScheduleCount[date] || 0) + 1;
+    });
+
+    // 统计已选中的推荐课时
+    Object.entries(selectedSchedules).forEach(([schedule, isSelected]) => {
+        if (isSelected) {
+            const date = schedule.split('【')[0];
+            dailyScheduleCount[date] = (dailyScheduleCount[date] || 0) + 1;
+        }
+    });
+    
+    // 统计每天的考期冲突课时数
+    termScheduleData.value.forEach(schedule => {
+        const date = schedule.dateTime;
+        dailyTermConflictCount[date] = (dailyTermConflictCount[date] || 0) + 1;
+    });
 
     // 获取当前课程的所有相关考期数据
     const termSchedules = allTermSchedules.value;
@@ -943,14 +975,34 @@ const recommendedSchedules = computed(() => {
         let currentDayOfWeek = currentDate.day() === 0 ? 7 : currentDate.day();
 
         if (addParm.weeks.includes(currentDayOfWeek)) {
+            const isWeekend = currentDayOfWeek === 6 || currentDayOfWeek === 7;
+            const maxDailySchedules = isWeekend ? 5 : Infinity; // 周末最多5个时间段
+
+            // 计算该天已经选择和排课的总数
+            const existingCount = dailyScheduleCount[currentDateTime] || 0;
+
             for (const schedule of addParm.schedules) {
                 const newBeginTime = dayjs(currentDateTime + ' ' + schedule.beginTime, 'YYYY-MM-DD HH:mm');
                 const newEndTime = dayjs(currentDateTime + ' ' + schedule.endTime, 'YYYY-MM-DD HH:mm');
+                
+                // 获取当前时间段的状态
+                const currentScheduleKey = `${currentDateTime}【${schedule.beginTime} ~ ${schedule.endTime}】`;
+                const isCurrentSelected = selectedSchedules[currentScheduleKey];
+
+                // 计算有效课时数（不包括当前时间段如果已被选中的情况）
+                const effectiveCount = isCurrentSelected ? existingCount - 1 : existingCount;
 
                 let classroomConflict = false;
                 let teacherConflict = false;
                 let courseConflict = false;
                 let courseTermConflict = false;
+                // 只有未选中的时间段，且当天其他课时达到上限时才禁用
+                // 只有未选中的时间段，且当天其他课时达到上限时才禁用
+                // 计算当天的总课时数（包括已排课时、已选课时和考期冲突课时）
+                const totalDailyCount = (dailyScheduleCount[currentDateTime] || 0) + (dailyTermConflictCount[currentDateTime] || 0);
+                let exceedMaxSchedules = !isCurrentSelected && (effectiveCount >= maxDailySchedules || totalDailyCount >= maxDailySchedules);
+
+
 
                 // Check course schedule conflicts
                 for (const existingSchedule of courseScheduleData.value) {
@@ -1054,16 +1106,16 @@ const recommendedSchedules = computed(() => {
 
                 // Only add to recommended schedules if there's no course conflict
                 if (!courseConflict) {
-                    recommendedSchedules.push({
-                        schedule: `${currentDateTime}【${schedule.beginTime} ~ ${schedule.endTime}】`,
-                        conflicts: {
-                            classroom: classroomConflict,
-                            teacher: teacherConflict,
-                            courseTerm: courseTermConflict
-                        }
-                    });
-
-                    // 初始化这个课时的选中状态
+                recommendedSchedules.push({
+                    schedule: `${currentDateTime}【${schedule.beginTime} ~ ${schedule.endTime}】`,
+                    conflicts: {
+                        classroom: classroomConflict,
+                        teacher: teacherConflict,
+                        courseTerm: courseTermConflict
+                    },
+                    disabled: exceedMaxSchedules,
+                    disabledReason: exceedMaxSchedules ? '该天已排5个时间段' : undefined
+                });                    // 初始化这个课时的选中状态
                     const scheduleKey = `${currentDateTime}【${schedule.beginTime} ~ ${schedule.endTime}】`;
                     if (selectedSchedules[scheduleKey] === undefined) {
                         selectedSchedules[scheduleKey] = false;
@@ -1314,6 +1366,9 @@ const allSelected = ref(false);
 // 不确定状态（部分选中）
 const isIndeterminate = ref(false);
 
+// 用于存储每天考期冲突的课时数量
+const dailyTermConflictCount = reactive<Record<string, number>>({});
+
 // 搜索函数
 const onSearch = (value: string) => {
     console.log('搜索内容:', value);
@@ -1327,11 +1382,33 @@ const onSearch = (value: string) => {
 
 // 切换单个课时的选择状态
 const toggleScheduleItem = (schedule: string) => {
-    // 如果这个键不存在，默认为false
     const currentState = selectedSchedules[schedule] || false;
-    selectedSchedules[schedule] = !currentState;
+    const date = schedule.split('【')[0];
+    
+    // 计算该天当前已有的课时数量（包括已排课时和已选中的课时）
+    const existingCount = (courseScheduleData.value || [])
+        .filter(s => s.dateTime === date).length;
+    
+    const selectedCount = Object.entries(selectedSchedules)
+        .filter(([key, isSelected]) => isSelected && key.startsWith(date))
+        .length;
+        
+    // 计算考期冲突的课时数量
+    const termConflictCount = dailyTermConflictCount[date] || 0;
+    const totalDailyCount = existingCount + selectedCount + termConflictCount;
 
-    // 使用我们的更新函数
+    // 检查是否是周末
+    const dayOfWeek = dayjs(date).day();
+    const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
+    
+    // 如果是周末，且当前未选中，且总数（包括考期冲突）已达到5个，则不允许选中
+    if (isWeekend && !currentState && totalDailyCount >= 5) {
+        message.warning('该天已达到最大课时数量限制（5个课时，包括考期冲突的课时）');
+        return;
+    }
+
+    // 更新选择状态
+    selectedSchedules[schedule] = !currentState;
     updateSelectionStatus();
 
     console.log(`切换课时 ${schedule} 选中状态为: ${!currentState}`);
@@ -1343,28 +1420,46 @@ const toggleScheduleItem = (schedule: string) => {
 const toggleAllSelection = (e: { target: { checked: boolean } }) => {
     const checked = e.target.checked;
 
-    // 如果是全选
-    if (checked) {
-        // 遍历所有可见的推荐课时，设置为选中
-        filteredRecommendedSchedules.value.forEach((item) => {
-            selectedSchedules[item.schedule] = true;
-        });
-
-        console.log(`已全选 ${filteredRecommendedSchedules.value.length} 节课时`);
-    }
     // 如果是取消全选
-    else {
+    if (!checked) {
         // 清除所有选中状态
         Object.keys(selectedSchedules).forEach(key => {
             selectedSchedules[key] = false;
         });
-
         console.log('已清空所有选择');
+    } else {
+        // 如果是全选，需要考虑周末课时限制
+        const dailyScheduleCount: { [key: string]: number } = {};
+        
+        // 统计已有课程的每天课时数量
+        courseScheduleData.value.forEach(schedule => {
+            const date = schedule.dateTime;
+            dailyScheduleCount[date] = (dailyScheduleCount[date] || 0) + 1;
+        });
+
+        // 遍历所有可见的推荐课时
+        filteredRecommendedSchedules.value.forEach((item) => {
+            const date = item.schedule.split('【')[0];
+            const dayOfWeek = dayjs(date).day();
+            const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
+            
+            if (isWeekend) {
+                // 如果是周末，检查是否超过限制
+                if ((dailyScheduleCount[date] || 0) < 5) {
+                    selectedSchedules[item.schedule] = true;
+                    dailyScheduleCount[date] = (dailyScheduleCount[date] || 0) + 1;
+                }
+            } else {
+                // 非周末不受限制
+                selectedSchedules[item.schedule] = true;
+            }
+        });
+
+        console.log(`已选中符合条件的课时`);
     }
 
-    // 直接设置状态，不再使用nextTick
-    allSelected.value = checked;
-    isIndeterminate.value = false;
+    // 更新全选状态
+    updateSelectionStatus();
 };
 
 // 获取选中的课时
@@ -2177,6 +2272,21 @@ li {
 .teacher-schedule-item:hover {
     background-color: #f5f5f5;
     border-color: #d9d9d9;
+}
+
+/* 禁用状态的样式 */
+.recommended-schedule-item.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.recommended-schedule-item.disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.recommended-schedule-item.disabled .schedule-content {
+    cursor: not-allowed;
 }
 
 /* 推荐课时项目hover效果 */
