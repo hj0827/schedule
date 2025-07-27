@@ -33,6 +33,46 @@ export default function useTable() {
             dataIndex: 'teacherDesc'
         },
         {
+            title: '身份证号',
+            key: 'idCard',
+            dataIndex: 'idCard'
+        },
+        {
+            title: '手机号码',
+            key: 'phone',
+            dataIndex: 'phone'
+        },
+        {
+            title: '开户行',
+            key: 'bankName',
+            dataIndex: 'bankName'
+        },
+        {
+            title: '开户市',
+            key: 'bankCity',
+            dataIndex: 'bankCity'
+        },
+        {
+            title: '支行',
+            key: 'bankBranch',
+            dataIndex: 'bankBranch'
+        },
+        {
+            title: '银行账号',
+            key: 'bankAccount',
+            dataIndex: 'bankAccount'
+        },
+        {
+            title: '课酬标准',
+            key: 'salaryStandard',
+            dataIndex: 'salaryStandard'
+        },
+        {
+            title: '教师类型',
+            key: 'teacherType',
+            dataIndex: 'teacherType'
+        },
+        {
             title: '操作',
             key: 'action',
             align: 'center',

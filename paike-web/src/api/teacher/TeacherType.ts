@@ -11,5 +11,14 @@ export type TeacherModel = {
     teacherId: string, 
     teacherName: string,
     teacherNum: string, 
-    teacherDesc: string
+    teacherDesc: string,
+    // 新增字段
+    idCard: string,
+    phone: string,
+    bankName: string,
+    bankCity: string,
+    bankBranch: string,
+    bankAccount: string,
+    salaryStandard: number,
+    teacherType: string
 }
