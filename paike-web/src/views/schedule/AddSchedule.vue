@@ -127,22 +127,22 @@
                     </div>
                     <div class="schedule-list">
                         <div class="fixed-header">
-                            <div class="header-title-row">
-                                <h3>推荐课时</h3>
+                            <div class="header-title-row" style="display: flex; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 3px;">
+                                    <h3 style="margin: 0;">推荐课时</h3>
+                                    <a-tooltip placement="right">
+                                        <template #title>
+                                            <span>选择课时，然后点击"确定"按钮进行批量排课</span>
+                                        </template>
+                                        <info-circle-outlined style="color: #1890ff;" />
+                                    </a-tooltip>
+                                </div>
                                 <div class="header-actions">
                                     <a-tooltip placement="top" title="复制全部推荐课时">
                                         <copy-outlined class="copy-all-icon" @click="copyAllRecommendedSchedules"
                                             :style="{ color: filteredRecommendedSchedules.length > 0 ? '#1890ff' : '#d9d9d9' }" />
                                     </a-tooltip>
                                 </div>
-                            </div>
-                            <div class="schedule-tip">
-                                <a-tooltip placement="right">
-                                    <template #title>
-                                        <span>选择课时，然后点击“确定”按钮进行批量排课</span>
-                                    </template>
-                                    <info-circle-outlined style="color: #1890ff; margin-left: 5px;" />
-                                </a-tooltip>
                             </div>
                             <a-input-search v-model:value="searchValue" placeholder="搜索课时"
                                 style="margin-bottom: 10px; width: 100%;" @search="onSearch" allowClear />
@@ -295,7 +295,15 @@
                     <div class="right-part">
                         <div class="teacher-schedule-container">
                             <div class="teacher-schedule-header-fixed">
-                                <h3>教师已排时间</h3>
+                                <div class="header-title-row" style="display: flex; align-items: center;">
+                                    <h3 style="margin: 0;">教师已排时间</h3>
+                                    <div class="header-actions" style="margin-left: auto;">
+                                        <a-tooltip placement="top" title="复制全部教师课时">
+                                            <copy-outlined class="copy-all-icon" @click="copyAllTeacherSchedules"
+                                                :style="{ color: teacherScheduleData.length > 0 ? '#1890ff' : '#d9d9d9' }" />
+                                        </a-tooltip>
+                                    </div>
+                                </div>
                             </div>
                             <div class="teacher-schedule-content-scrollable">
                                 <ul v-if="teacherScheduleData.length > 0">
@@ -304,7 +312,7 @@
                                         <span class="week-day-tag">
                                             {{ getDayOfWeek(schedule.dateTime) }}
                                         </span>
-                                        {{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime }}【{{
+                                        {{ formatLessonName(schedule.courseName) }}{{ formatLessonName(schedule.lessonName) }}：{{ schedule.dateTime }}【{{
                                             schedule.beginTime.substring(0, 5) }} ~
                                         {{ schedule.endTime.substring(0, 5) }}】
                                     </li>
@@ -923,6 +931,29 @@ watch(courseScheduleData, () => {
     selectedScheduleIds.value = [];
     updateSelectAllState();
 }, { deep: true });
+
+// 复制教师所有课时
+const copyAllTeacherSchedules = async () => {
+    if (teacherScheduleData.value.length === 0) {
+        message.warning('暂无教师课时可复制');
+        return;
+    }
+
+    try {
+        const schedulesText = teacherScheduleData.value
+            .map(schedule => {
+                const dayOfWeek = getDayOfWeek(schedule.dateTime);
+                return `${dayOfWeek} ${formatLessonName(schedule.courseName)}${formatLessonName(schedule.lessonName)}：${schedule.dateTime}【${schedule.beginTime.substring(0, 5)} ~ ${schedule.endTime.substring(0, 5)}】`;
+            })
+            .join('\n');
+
+        await navigator.clipboard.writeText(schedulesText);
+        message.success(`已复制 ${teacherScheduleData.value.length} 个教师课时到剪贴板`);
+    } catch (err) {
+        console.error('复制失败:', err);
+        message.error('复制到剪贴板失败');
+    }
+};
 
 // 计算推荐课时
 const recommendedSchedules = computed(() => {
